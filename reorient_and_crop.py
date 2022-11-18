@@ -3,9 +3,11 @@
 import argparse
 import json
 import nibabel
+import numpy
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--acmm', nargs=3, type=float, required=True)
+parser.add_argument('--acijk', nargs=3, type=float, required=True)
+parser.add_argument('--fovmm', nargs=3, type=float, default=[40, 30, 50])
 parser.add_argument('--nifti', required=True)
 parser.add_argument('--json', required=True)
 parser.add_argument('--position', default='sphinx')
@@ -29,17 +31,36 @@ else:
         f'Unable to reorient for Patient Position {hdr["PatientPosition"]} ' 
         f'and actual position {args.position}'
         )
-img.set_qform(newaff)
-img.set_sform(newaff)
-img.to_filename(args.out)
+#img.set_qform(newaff)
+#img.set_sform(newaff)
 
-# Crop extents from provided anterior commissure coordinate for macaque
-xmin = args.acmm[0] - 40
-xmax = args.acmm[0] + 40
+# Crop extents from provided anterior commissure coordinate for macaque.
+# Crop box is specified in mm, so we scale by the voxel size. AC coordinate 
+# is VOXEL location (not mm) in the original image (not the reoriented 
+# image). FOV is symmetrical around the AC point
+vox = img.header.get_zooms()
+ijkmin = [args.acijk[n] - args.fovmm[n]/vox[n] for n in range(3)]
+ijkmax = [args.acijk[n] + args.fovmm[n]/vox[n] for n in range(3)]
 
-ymin = args.acmm[1] - 50
-ymax = args.acmm[1] + 40
+# Matrices of voxel coords
+vsize = img.header.get_data_shape()
+ci, cj, ck = numpy.meshgrid(
+    range(vsize[0]),
+    range(vsize[1]),
+    range(vsize[2]),
+    indexing='ij'
+    )
+imgdata = img.get_fdata()
+newimgdata = numpy.zeros_like(imgdata)
+keepinds = (
+    (ci>=ijkmin[0]) & (ci<=ijkmax[0]) &
+    (cj>=ijkmin[1]) & (cj<=ijkmax[1]) &
+    (ck>=ijkmin[2]) & (ck<=ijkmax[2])
+    )
+newimgdata[keepinds] = imgdata[keepinds]
 
-zmin = args.acmm[2] - 30
-zmax = args.acmm[2] + 30
+#ci<ijkmin[0] or ci>ijkmax[0]] = 0
+#imgdata[ci>ijkmax[0]] = 0
 
+imgout = nibabel.nifti1.Nifti1Image(newimgdata, newaff)
+imgout.to_filename(args.out)
