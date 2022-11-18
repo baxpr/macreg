@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
 #
 # Monkey position is prone with 90 deg posterior head tilt (sphinx position).
-# But scanner setting is "supine". This rearrangement of the qform/sform is 
-# specific to this situation
+#
+# But scanner setting is "supine" - specifically, Patient Position 0018,5100 is 
+# "HFS" (head-first supine) - and the Nifti file is mislabeled accordingly.
+#
+# This rearrangement of the qform/sform is specific to this situation.
 
 # Get sform of anat image, split to array
 S=($(fslorient -getsform t1))
 
-# Rearrange sform
+# Rearrange sform. We swap Y, Z axes, and flip in X to retain handedness 
+# (avoid left/right reversal).
 newS=\
-"-${s[0]} -${s[1]} -${s[2]} -${s[3]} "\
-"${s[8]} ${s[9]} ${s[10]} ${s[11]} "\
-"${s[4]} ${s[5]} ${s[6]} ${s[7]} "\
-"${s[12]} ${s[13]} ${s[14]} ${s[15]} "
+"-${S[0]} -${S[1]} -${S[2]} -${S[3]} "\
+"${S[8]} ${S[9]} ${S[10]} ${S[11]} "\
+"${S[4]} ${S[5]} ${S[6]} ${S[7]} "\
+"${S[12]} ${S[13]} ${S[14]} ${S[15]} "
 
-# Fix (delete) doubled negative signs
+# Fix doubled negative signs by deleting them
 newS=${newS//--/}
 
 echo "Changing sform from"
