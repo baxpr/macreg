@@ -4,22 +4,28 @@ import argparse
 import json
 import nibabel
 import numpy
+import pandas
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--acijk', nargs=3, type=float, required=True)
-parser.add_argument('--fovmm', nargs=3, type=float, default=[40, 30, 50])
-parser.add_argument('--nifti', required=True)
+parser.add_argument('--nii', required=True)
 parser.add_argument('--json', required=True)
+parser.add_argument('--acijk_csv', required=True)
 parser.add_argument('--position', default='sphinx')
-parser.add_argument('--out', required=True)
+parser.add_argument('--fovmm', nargs=3, type=float, default=[40, 30, 50])
+parser.add_argument('--outnii', required=True)
 args = parser.parse_args()
 
 # Get Patient Position 0018,5100 from the dcm2niix json sidecar
 with open(args.json, 'r') as f:
   hdr = json.load(f)
 
+# Get AC location from the csv file
+acijk = pandas.read_csv(args.acijk_csv, header=None)
+if acijk.shape != (1, 3):
+    raise Exception('Error in AC coord csv')
+
 # Reorientation
-img = nibabel.nifti1.load(args.nifti)
+img = nibabel.nifti1.load(args.nii)
 newaff = img.affine.copy()
 if hdr['PatientPosition']=='HFS' and args.position=='sphinx':
     # Swap Y, Z axes, and flip in X to retain handedness
@@ -39,8 +45,9 @@ else:
 # is VOXEL location (not mm) in the original image (not the reoriented 
 # image). FOV is symmetrical around the AC point
 vox = img.header.get_zooms()
-ijkmin = [args.acijk[n] - args.fovmm[n]/vox[n] for n in range(3)]
-ijkmax = [args.acijk[n] + args.fovmm[n]/vox[n] for n in range(3)]
+ijkmin = [acijk[n] - args.fovmm[n]/vox[n] for n in range(3)]
+ijkmax = [acijk[n] + args.fovmm[n]/vox[n] for n in range(3)]
+print(ijkmin)
 
 # Matrices of voxel coords
 vsize = img.header.get_data_shape()
@@ -63,4 +70,4 @@ newimgdata[keepinds] = imgdata[keepinds]
 #imgdata[ci>ijkmax[0]] = 0
 
 imgout = nibabel.nifti1.Nifti1Image(newimgdata, newaff)
-imgout.to_filename(args.out)
+imgout.to_filename(args.outnii)

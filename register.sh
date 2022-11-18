@@ -1,24 +1,20 @@
 #!/usr/bin/env bash
 
 t1_niigz=$(pwd)/INPUTS/t1.nii.gz
+t1_json=$(pwd)/INPUTS/t1.json
+acijk_csv=$(pwd)/INPUTS/t1_acijk.csv
 out_dir=$(pwd)/OUTPUTS
 nmt_dir=$(pwd)/NMT_v2.0_sym
 
-# Work in the output dir
-cd "${out_dir}"
+# Reorient and crop to make flirt happy
+echo Reorient and crop
+reorient_and_crop.py \
+    --nii "${t1_niigz}" \
+    --json "${t1_json}" \
+    --acijk_csv "${acijk_csv}" \
+    --position sphinx \
+    --outnii "${out_dir}"/rt1.nii.gz
 
 # Reorient data ordering to make FSL happy
-echo Reorient
-fslreorient2std "${t1_niigz}" t1.nii.gz
-
-# Initial rigid registration
-echo Initial rigid registration
-flirt -v \
-    -in t1.nii.gz \
-    -ref "${nmt_dir}"/NMT_v2.0_sym_fh/NMT_v2.0_sym_fh.nii.gz \
-    -dof 6 \
-    -searchrx -180 180 -searchry -180 180 -searchrz -180 180 \
-    -coarsesearch 90 \
-    -out t1_6dof \
-    -omat t1_to_nmt_6dof.mat
-
+echo Reorder to standard
+fslreorient2std "${out_dir}"/rt1 "${out_dir}"/srt1
