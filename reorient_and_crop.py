@@ -45,9 +45,8 @@ else:
 # is VOXEL location (not mm) in the original image (not the reoriented 
 # image). FOV is symmetrical around the AC point
 vox = img.header.get_zooms()
-ijkmin = [acijk[n] - args.fovmm[n]/vox[n] for n in range(3)]
-ijkmax = [acijk[n] + args.fovmm[n]/vox[n] for n in range(3)]
-print(ijkmin)
+ijkmin = [acijk[n][0] - args.fovmm[n]/vox[n] for n in range(3)]
+ijkmax = [acijk[n][0] + args.fovmm[n]/vox[n] for n in range(3)]
 
 # Matrices of voxel coords
 vsize = img.header.get_data_shape()
