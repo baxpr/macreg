@@ -48,3 +48,4 @@ flirt \
     -in srt1 \
     -ref "${nmt_dir}"/NMT_v2.0_sym_fh.nii.gz \
     -out asrt1
+
