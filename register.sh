@@ -38,14 +38,14 @@ flirt \
     -ref "${nmt_dir}"/NMT_v2.0_sym_fh.nii.gz \
     -refweight "${nmt_dir}"/NMT_v2.0_sym_fh_brainmask.nii.gz \
     -out arsrt1 \
-    -omat rsrt1_to_nmt.mat
+    -omat rsrt1_to_nmt_12.mat
 
-# Combine transformations and apply
-convert_xfm -omat srt1_to_nmt.mat -concat rsrt1_to_nmt.mat srt1_to_nmt_6.mat
-flirt \
-    -init srt1_to_nmt.mat \
-    -applyxfm \
-    -in srt1 \
-    -ref "${nmt_dir}"/NMT_v2.0_sym_fh.nii.gz \
-    -out asrt1
-
+# Combine transformations and apply. No point when template voxel size (0.25mm)
+# is less than image voxel size (0.5mm) as interp error is very low in that case
+#convert_xfm -omat srt1_to_nmt.mat -concat rsrt1_to_nmt.mat srt1_to_nmt_6.mat
+#flirt \
+#    -init srt1_to_nmt.mat \
+#    -applyxfm \
+#    -in srt1 \
+#    -ref "${nmt_dir}"/NMT_v2.0_sym_fh.nii.gz \
+#    -out asrt1
